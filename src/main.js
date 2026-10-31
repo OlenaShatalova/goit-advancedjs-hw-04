@@ -1,7 +1,11 @@
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
-import { getImagesByQuery, PER_PAGE } from './js/pixabay-api.js';
+import {
+  getImagesByQuery,
+  PER_PAGE,
+  PER_PAGE_TABLET,
+} from './js/pixabay-api.js';
 import {
   createGallery,
   clearGallery,
@@ -25,6 +29,11 @@ const toastOptions = {
 let query = '';
 let page = 1;
 let totalPages = 0;
+let perPage = PER_PAGE;
+
+const tabletQuery = window.matchMedia(
+  '(min-width: 768px) and (max-width: 1199px)'
+);
 
 form.addEventListener('submit', onSearchSubmit);
 loadMoreBtn.addEventListener('click', onLoadMore);
@@ -42,13 +51,15 @@ async function onSearchSubmit(event) {
   query = value;
   page = 1;
   totalPages = 0;
+  // on tablet the grid has 2 columns, so load an even number of cards
+  perPage = tabletQuery.matches ? PER_PAGE_TABLET : PER_PAGE;
 
   clearGallery();
   hideLoadMoreButton();
   showLoader();
 
   try {
-    const { hits, totalHits } = await getImagesByQuery(query, page);
+    const { hits, totalHits } = await getImagesByQuery(query, page, perPage);
 
     if (hits.length === 0) {
       iziToast.show({
@@ -59,7 +70,7 @@ async function onSearchSubmit(event) {
       return;
     }
 
-    totalPages = Math.ceil(totalHits / PER_PAGE);
+    totalPages = Math.ceil(totalHits / perPage);
     createGallery(hits);
     updateLoadMore();
   } catch (error) {
@@ -77,7 +88,7 @@ async function onLoadMore() {
   showLoader();
 
   try {
-    const { hits } = await getImagesByQuery(query, page);
+    const { hits } = await getImagesByQuery(query, page, perPage);
 
     createGallery(hits);
     scrollByTwoCards();
